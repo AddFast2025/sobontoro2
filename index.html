@@ -143,18 +143,17 @@ function hidePauseOverlay() {
 
 // KIRIM DATA
 function sendToGoogleSheet(data) {
-const finalData = data + "$subuh";
+  const finalData = data + "$subuh";
 
-  
-  const url = WEB_APP_URL + "?qr=" + encodeURIComponent(data);
+  const url = WEB_APP_URL + "?qr=" + encodeURIComponent(finalData);
 
   fetch(url)
     .then(() => {
-      output.textContent = "✅ Terkirim: " + data;
+      output.textContent = "✅ Terkirim: " + finalData;
 
       const div = document.createElement("div");
       div.className = "item";
-      div.textContent = data;
+      div.textContent = finalData;
       sentList.prepend(div);
 
       setTimeout(() => {
@@ -165,8 +164,6 @@ const finalData = data + "$subuh";
     })
     .catch(() => {
       output.textContent = "❌ Gagal kirim data";
-
-      // Jika gagal kirim, hapus dari set agar bisa scan ulang
       scannedSet.delete(data);
 
       setTimeout(() => {
@@ -176,6 +173,8 @@ const finalData = data + "$subuh";
       }, 1000);
     });
 }
+
+  
 
 // AUTO START
 window.addEventListener("load", startScanner);
