@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Scan Barcode</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    #reader {
+      width: 100%;
+      max-width: 500px;
+      margin: 10px auto;
+    }
+    #output {
+      margin-top: 10px;
+      font-weight: bold;
+      min-height: 20px;
+    }
+    #sentList {
+      margin-top: 20px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+      border-top: 2px solid #ddd;
+      padding-top: 10px;
+    }
+    .item {
+      padding: 6px;
+      border-bottom: 1px solid #eee;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Scan Barcode</h2>
+
+<div id="reader"></div>
+<div id="output"></div>
+
+<div id="sentList"></div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<script>
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxXNQZg_6SC_B7XDKFTWpvswIFWq4KArRkf0IFGPjOCNNKGqGvGBeeEMPUBR4OjpP0_/exec";
+
+const output = document.getElementById("output");
+const sentList = document.getElementById("sentList");
+
+let lastResult = "";
+let html5QrCode = new Html5Qrcode("reader");
+
+// Kirim ke Google Sheets
+function sendToGoogleSheet(data) {
+  fetch(WEB_APP_URL, {
+    method: "POST",
+    body: JSON.stringify({ qr: data })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error();
+    output.textContent = "✅ Terkirim: " + data;
+
+    // Tambah ke list bawah
+    const div = document.createElement("div");
+    div.className = "item";
+    div.textContent = data;
+    sentList.prepend(div);
+  })
+  .catch(() => {
+    output.textContent = "❌ Gagal kirim data";
+  });
+}
+
+// Start scan otomatis saat buka halaman
+Html5Qrcode.getCameras().then(() => {
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      // Cegah kirim QR yang sama berulang terus
+      if (decodedText === lastResult) return;
+
+      lastResult = decodedText;
+      sendToGoogleSheet(decodedText);
+
+      // Reset supaya QR yang sama bisa discan lagi setelah 2 detik
+      setTimeout(() => { lastResult = ""; }, 2000);
+    }
+  );
+}).catch(() => {
+  output.textContent = "❌ Kamera tidak tersedia";
+});
+</script>
+
+</body>
+</html>
