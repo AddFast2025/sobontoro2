@@ -1,54 +1,57 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Scan Barcode</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       margin: 0;
-      padding: 20px;
+      padding: 10px;
+      background: #f6f7fb;
     }
+    h2 { margin: 10px 0; }
     #reader {
       width: 100%;
-      max-width: 500px;
-      margin: 10px auto;
+      max-width: 420px;
+      margin: auto;
+      border-radius: 12px;
+      overflow: hidden;
     }
     #output {
       margin-top: 10px;
       font-weight: bold;
-      min-height: 20px;
+      min-height: 24px;
     }
     #sentList {
-      margin-top: 20px;
-      max-width: 500px;
+      margin-top: 15px;
+      max-width: 420px;
       margin-left: auto;
       margin-right: auto;
       text-align: left;
       border-top: 2px solid #ddd;
-      padding-top: 10px;
+      padding-top: 8px;
     }
     .item {
-      padding: 6px;
+      padding: 6px 4px;
       border-bottom: 1px solid #eee;
-      font-size: 16px;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
 
-<h2>Scan Barcode</h2>
+<h2>📷 Scan Barcode</h2>
 
 <div id="reader"></div>
-<div id="output"></div>
+<div id="output">Siap scan...</div>
 
 <div id="sentList"></div>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
-
 <script>
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxXNQZg_6SC_B7XDKFTWpvswIFWq4KArRkf0IFGPjOCNNKGqGvGBeeEMPUBR4OjpP0_/exec";
 
@@ -56,74 +59,58 @@ const output = document.getElementById("output");
 const sentList = document.getElementById("sentList");
 
 let html5QrCode;
-let isScanning = false;
+let busy = false;
 
-// Nyalakan kamera
+// start kamera
 function startScanner() {
-  const config = { fps: 10, qrbox: 250 };
-
+  const config = { fps: 15, qrbox: { width: 250, height: 250 } };
   html5QrCode = new Html5Qrcode("reader");
 
   html5QrCode.start(
     { facingMode: "environment" },
     config,
     (decodedText) => {
-      if (isScanning) return; // cegah double trigger
-      isScanning = true;
+      if (busy) return;
+      busy = true;
+      html5QrCode.pause(true);
 
-      stopScanner(decodedText);
+      sendToGoogleSheet(decodedText);
     }
-  ).catch(err => {
+  ).catch(() => {
     output.textContent = "❌ Kamera tidak bisa diakses";
-    console.error(err);
   });
 }
 
-// Matikan kamera
-function stopScanner(decodedText) {
-  html5QrCode.stop().then(() => {
-    sendToGoogleSheet(decodedText);
-  }).catch(err => console.error(err));
-}
-
-// Kirim ke Google Sheets
+// kirim data (GET lebih cepat dari POST)
 function sendToGoogleSheet(data) {
-  fetch(WEB_APP_URL, {
-    method: "POST",
-    body: JSON.stringify({ qr: data })
-  })
-  .then(res => {
-    if (!res.ok) throw new Error();
+  const url = WEB_APP_URL + "?qr=" + encodeURIComponent(data);
 
-    output.textContent = "✅ Terkirim: " + data;
+  fetch(url)
+    .then(() => {
+      output.textContent = "✅ Terkirim: " + data;
 
-    // Simpan ke tampilan list
-    const div = document.createElement("div");
-    div.className = "item";
-    div.textContent = data;
-    sentList.prepend(div);
+      const div = document.createElement("div");
+      div.className = "item";
+      div.textContent = data;
+      sentList.prepend(div);
 
-    // Nyalakan kamera lagi setelah sukses
-    setTimeout(() => {
-      isScanning = false;
-      startScanner();
-    }, 1000);
-  })
-  .catch(err => {
-    output.textContent = "❌ Gagal mengirim data";
+      setTimeout(() => {
+        busy = false;
+        html5QrCode.resume();
+      }, 500);
+    })
+    .catch(() => {
+      output.textContent = "❌ Gagal kirim data";
 
-    // Jika gagal kirim → tetap nyalakan lagi scanner
-    setTimeout(() => {
-      isScanning = false;
-      startScanner();
-    }, 1500);
-  });
+      setTimeout(() => {
+        busy = false;
+        html5QrCode.resume();
+      }, 1000);
+    });
 }
 
-// Otomatis nyala saat halaman dibuka
-window.addEventListener("load", () => {
-  startScanner();
-});
+// otomatis nyala
+window.addEventListener("load", startScanner);
 </script>
 
 </body>
