@@ -88,6 +88,9 @@ const pauseOverlay = document.getElementById("pauseOverlay");
 let html5QrCode;
 let busy = false;
 
+// SIMPAN DATA YANG SUDAH DISCAN
+const scannedSet = new Set();
+
 // START KAMERA
 function startScanner() {
   const config = { fps: 15, qrbox: { width: 250, height: 250 } };
@@ -100,7 +103,26 @@ function startScanner() {
       if (busy) return;
       busy = true;
 
-      // pause kamera
+      // JIKA SUDAH PERNAH DISCAN → TOLAK
+      if (scannedSet.has(decodedText)) {
+        html5QrCode.pause(true);
+        showPauseOverlay();
+
+        output.textContent = "⛔ Barcode sudah pernah discan: " + decodedText;
+
+        setTimeout(() => {
+          hidePauseOverlay();
+          busy = false;
+          html5QrCode.resume();
+        }, 800);
+
+        return;
+      }
+
+      // TANDAI SUDAH DISCAN
+      scannedSet.add(decodedText);
+
+      // PAUSE & KIRIM
       html5QrCode.pause(true);
       showPauseOverlay();
 
@@ -111,12 +133,10 @@ function startScanner() {
   });
 }
 
-// TAMPILKAN OVERLAY
+// OVERLAY
 function showPauseOverlay() {
   pauseOverlay.style.display = "flex";
 }
-
-// SEMBUNYIKAN OVERLAY
 function hidePauseOverlay() {
   pauseOverlay.style.display = "none";
 }
@@ -143,6 +163,9 @@ function sendToGoogleSheet(data) {
     .catch(() => {
       output.textContent = "❌ Gagal kirim data";
 
+      // Jika gagal kirim, hapus dari set agar bisa scan ulang
+      scannedSet.delete(data);
+
       setTimeout(() => {
         busy = false;
         hidePauseOverlay();
@@ -154,6 +177,7 @@ function sendToGoogleSheet(data) {
 // AUTO START
 window.addEventListener("load", startScanner);
 </script>
+
 
 </body>
 </html>
