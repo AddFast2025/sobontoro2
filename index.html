@@ -143,6 +143,9 @@ function hidePauseOverlay() {
 
 // KIRIM DATA
 function sendToGoogleSheet(data) {
+const finalData = data + "$subuh";
+
+  
   const url = WEB_APP_URL + "?qr=" + encodeURIComponent(data);
 
   fetch(url)
