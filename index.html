@@ -14,18 +14,40 @@
       background: #f6f7fb;
     }
     h2 { margin: 10px 0; }
-    #reader {
+
+    #reader-container {
+      position: relative;
       width: 100%;
       max-width: 420px;
       margin: auto;
       border-radius: 12px;
       overflow: hidden;
     }
+
+    #reader {
+      width: 100%;
+    }
+
+    /* Overlay putih ketika pause */
+    #pauseOverlay {
+      position: absolute;
+      inset: 0;
+      background: #ffffff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: #333;
+      z-index: 10;
+    }
+
     #output {
       margin-top: 10px;
       font-weight: bold;
       min-height: 24px;
     }
+
     #sentList {
       margin-top: 15px;
       max-width: 420px;
@@ -35,6 +57,7 @@
       border-top: 2px solid #ddd;
       padding-top: 8px;
     }
+
     .item {
       padding: 6px 4px;
       border-bottom: 1px solid #eee;
@@ -46,9 +69,12 @@
 
 <h2>📷 Scan Barcode sdn</h2>
 
-<div id="reader"></div>
-<div id="output">Siap scan...</div>
+<div id="reader-container">
+  <div id="reader"></div>
+  <div id="pauseOverlay">⏸ Scan Pause...</div>
+</div>
 
+<div id="output">Siap scan...</div>
 <div id="sentList"></div>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
@@ -57,11 +83,12 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxXNQZg_6SC_B7XDKFT
 
 const output = document.getElementById("output");
 const sentList = document.getElementById("sentList");
+const pauseOverlay = document.getElementById("pauseOverlay");
 
 let html5QrCode;
 let busy = false;
 
-// start kamera
+// START KAMERA
 function startScanner() {
   const config = { fps: 15, qrbox: { width: 250, height: 250 } };
   html5QrCode = new Html5Qrcode("reader");
@@ -72,7 +99,10 @@ function startScanner() {
     (decodedText) => {
       if (busy) return;
       busy = true;
+
+      // pause kamera
       html5QrCode.pause(true);
+      showPauseOverlay();
 
       sendToGoogleSheet(decodedText);
     }
@@ -81,7 +111,17 @@ function startScanner() {
   });
 }
 
-// kirim data (GET lebih cepat dari POST)
+// TAMPILKAN OVERLAY
+function showPauseOverlay() {
+  pauseOverlay.style.display = "flex";
+}
+
+// SEMBUNYIKAN OVERLAY
+function hidePauseOverlay() {
+  pauseOverlay.style.display = "none";
+}
+
+// KIRIM DATA
 function sendToGoogleSheet(data) {
   const url = WEB_APP_URL + "?qr=" + encodeURIComponent(data);
 
@@ -96,6 +136,7 @@ function sendToGoogleSheet(data) {
 
       setTimeout(() => {
         busy = false;
+        hidePauseOverlay();
         html5QrCode.resume();
       }, 500);
     })
@@ -104,12 +145,13 @@ function sendToGoogleSheet(data) {
 
       setTimeout(() => {
         busy = false;
+        hidePauseOverlay();
         html5QrCode.resume();
       }, 1000);
     });
 }
 
-// otomatis nyala
+// AUTO START
 window.addEventListener("load", startScanner);
 </script>
 
