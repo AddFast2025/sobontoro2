@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Scan Barcode</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 10px;
+      background: #f6f7fb;
+    }
+    h2 { margin: 10px 0; }
+    #reader {
+      width: 100%;
+      max-width: 420px;
+      margin: auto;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    #output {
+      margin-top: 10px;
+      font-weight: bold;
+      min-height: 24px;
+    }
+    #sentList {
+      margin-top: 15px;
+      max-width: 420px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+      border-top: 2px solid #ddd;
+      padding-top: 8px;
+    }
+    .item {
+      padding: 6px 4px;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>📷 Scan Barcode</h2>
+
+<div id="reader"></div>
+<div id="output">Siap scan...</div>
+
+<div id="sentList"></div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxXNQZg_6SC_B7XDKFTWpvswIFWq4KArRkf0IFGPjOCNNKGqGvGBeeEMPUBR4OjpP0_/exec";
+
+const output = document.getElementById("output");
+const sentList = document.getElementById("sentList");
+
+let html5QrCode;
+let busy = false;
+
+// start kamera
+function startScanner() {
+  const config = { fps: 15, qrbox: { width: 250, height: 250 } };
+  html5QrCode = new Html5Qrcode("reader");
+
+  html5QrCode.start(
+    { facingMode: "environment" },
+    config,
+    (decodedText) => {
+      if (busy) return;
+      busy = true;
+      html5QrCode.pause(true);
+
+      sendToGoogleSheet(decodedText);
+    }
+  ).catch(() => {
+    output.textContent = "❌ Kamera tidak bisa diakses";
+  });
+}
+
+// kirim data (GET lebih cepat dari POST)
+function sendToGoogleSheet(data) {
+  const url = WEB_APP_URL + "?qr=" + encodeURIComponent(data);
+
+  fetch(url)
+    .then(() => {
+      output.textContent = "✅ Terkirim: " + data;
+
+      const div = document.createElement("div");
+      div.className = "item";
+      div.textContent = data;
+      sentList.prepend(div);
+
+      setTimeout(() => {
+        busy = false;
+        html5QrCode.resume();
+      }, 500);
+    })
+    .catch(() => {
+      output.textContent = "❌ Gagal kirim data";
+
+      setTimeout(() => {
+        busy = false;
+        html5QrCode.resume();
+      }, 1000);
+    });
+}
+
+// otomatis nyala
+window.addEventListener("load", startScanner);
+</script>
+
+</body>
+</html>
