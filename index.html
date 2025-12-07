@@ -55,8 +55,36 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxXNQZg_6SC_B7XDKFT
 const output = document.getElementById("output");
 const sentList = document.getElementById("sentList");
 
-let lastResult = "";
-let html5QrCode = new Html5Qrcode("reader");
+let html5QrCode;
+let isScanning = false;
+
+// Nyalakan kamera
+function startScanner() {
+  const config = { fps: 10, qrbox: 250 };
+
+  html5QrCode = new Html5Qrcode("reader");
+
+  html5QrCode.start(
+    { facingMode: "environment" },
+    config,
+    (decodedText) => {
+      if (isScanning) return; // cegah double trigger
+      isScanning = true;
+
+      stopScanner(decodedText);
+    }
+  ).catch(err => {
+    output.textContent = "❌ Kamera tidak bisa diakses";
+    console.error(err);
+  });
+}
+
+// Matikan kamera
+function stopScanner(decodedText) {
+  html5QrCode.stop().then(() => {
+    sendToGoogleSheet(decodedText);
+  }).catch(err => console.error(err));
+}
 
 // Kirim ke Google Sheets
 function sendToGoogleSheet(data) {
@@ -66,37 +94,35 @@ function sendToGoogleSheet(data) {
   })
   .then(res => {
     if (!res.ok) throw new Error();
+
     output.textContent = "✅ Terkirim: " + data;
 
-    // Tambah ke list bawah
+    // Simpan ke tampilan list
     const div = document.createElement("div");
     div.className = "item";
     div.textContent = data;
     sentList.prepend(div);
+
+    // Nyalakan kamera lagi setelah sukses
+    setTimeout(() => {
+      isScanning = false;
+      startScanner();
+    }, 1000);
   })
-  .catch(() => {
-    output.textContent = "❌ Gagal kirim data";
+  .catch(err => {
+    output.textContent = "❌ Gagal mengirim data";
+
+    // Jika gagal kirim → tetap nyalakan lagi scanner
+    setTimeout(() => {
+      isScanning = false;
+      startScanner();
+    }, 1500);
   });
 }
 
-// Start scan otomatis saat buka halaman
-Html5Qrcode.getCameras().then(() => {
-  html5QrCode.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: 250 },
-    (decodedText) => {
-      // Cegah kirim QR yang sama berulang terus
-      if (decodedText === lastResult) return;
-
-      lastResult = decodedText;
-      sendToGoogleSheet(decodedText);
-
-      // Reset supaya QR yang sama bisa discan lagi setelah 2 detik
-      setTimeout(() => { lastResult = ""; }, 2000);
-    }
-  );
-}).catch(() => {
-  output.textContent = "❌ Kamera tidak tersedia";
+// Otomatis nyala saat halaman dibuka
+window.addEventListener("load", () => {
+  startScanner();
 });
 </script>
 
