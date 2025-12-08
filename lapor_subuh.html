@@ -119,6 +119,11 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbwoU1qINJ-JjNpWayXFzY7VSkzrAOmdLzqz2CBvM1l8d5VPhaOqVHN4r-ksI3DoJKWLMA/exec";
 
+const CACHE_KEY = "dataSiswaCache_v1";
+const CACHE_TIME_KEY = "dataSiswaCache_time";
+const CACHE_EXPIRE_MS = 26 * 60 * 60 * 1000; // 24 jam
+
+
 const btn = document.getElementById("btnSubuh");
 const info = document.getElementById("info");
 const jamDiv = document.getElementById("jam");
@@ -213,23 +218,36 @@ function compressImage(file, targetSizeKB = 30, maxWidth = 800) {
 
 // Ambil data siswa
 function ambilDataSiswa() {
+  const cached = localStorage.getItem(CACHE_KEY);
+  const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+
+  // ✅ Kalau ada cache & belum kedaluwarsa
+  if (cached && cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_EXPIRE_MS) {
+    dataSiswa = JSON.parse(cached);
+
+    loadingDiv.style.display = "none";
+    statusData.textContent = "✅ Data siap (cache)";
+    selectKelas.disabled = false;
+    return;
+  }
+
+  // ✅ Kalau belum ada cache / sudah expired → ambil dari server
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
       dataSiswa = data;
 
-      // ✅ HILANGKAN tulisan "Memuat..."
+      // Simpan ke cache
+      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      localStorage.setItem(CACHE_TIME_KEY, Date.now());
+
       loadingDiv.style.display = "none";
-
-      // ✅ Tampilkan status "Data siap"
       statusData.textContent = "✅ Data siap";
-
-      // Aktifkan dropdown kelas
       selectKelas.disabled = false;
     })
     .catch(err => {
-      statusData.textContent = "❌ Gagal memuat data";
       console.error(err);
+      statusData.textContent = "❌ Gagal memuat data";
     });
 }
 
