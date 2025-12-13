@@ -6,20 +6,31 @@
 <title>Status Nilai Siswa</title>
 
 <style>
+/* ===== BODY CENTER ===== */
 body {
   font-family: Arial, sans-serif;
-  padding: 10px;
-  margin: 0;
   background: #f7f7f7;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
 }
 
+/* ===== CONTAINER ===== */
+.container {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px;
+}
+
+/* ===== JUDUL ===== */
 h2 {
   text-align: center;
   font-size: 18px;
   margin: 8px 0;
 }
 
-/* Input cari */
+/* ===== INPUT CARI ===== */
 .cari-wrap {
   display: flex;
   justify-content: center;
@@ -28,14 +39,13 @@ h2 {
 
 .cari-wrap input {
   width: 100%;
-  max-width: 320px;
   padding: 8px 12px;
   font-size: 13px;
   border-radius: 20px;
   border: 1px solid #ccc;
 }
 
-/* Dropdown */
+/* ===== FILTER ===== */
 .filter-wrap {
   display: flex;
   gap: 8px;
@@ -51,7 +61,7 @@ h2 {
   border: 1px solid #ccc;
 }
 
-/* Info jumlah */
+/* ===== INFO ===== */
 #info {
   text-align: center;
   font-size: 12px;
@@ -59,48 +69,61 @@ h2 {
   margin-bottom: 8px;
 }
 
-/* Loading */
+/* ===== LOADING ===== */
 #loading {
   text-align: center;
   font-size: 13px;
   padding: 10px;
 }
 
-/* Table */
+/* ===== TABLE WRAP ===== */
 .table-wrap {
-  overflow-x: auto;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0,0,0,.1);
   display: none;
 }
 
+/* ===== TABLE ===== */
 table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 480px;
+  table-layout: fixed;
 }
 
+/* ===== KOLOM ===== */
 th, td {
   border: 1px solid #ddd;
-  padding: 8px 6px;
-  font-size: 13px;
+  padding: 6px 4px;
+  font-size: 12px;
+  text-align: center;
 }
 
 th {
   background: #f1f1f1;
-  font-size: 12px;
+  font-size: 11px;
 }
 
-td {
-  text-align: center;
-}
+/* No */
+th:nth-child(1), td:nth-child(1) { width: 35px; }
 
-td.nama {
+/* Nama */
+th:nth-child(2), td:nth-child(2) {
+  width: 140px;
   text-align: left;
+  word-break: break-word;
 }
 
-/* Warna status */
+/* Kelas */
+th:nth-child(3), td:nth-child(3) { width: 50px; }
+
+/* Nilai */
+th:nth-child(4), td:nth-child(4) { width: 50px; }
+
+/* Status */
+th:nth-child(5), td:nth-child(5) { width: 60px; }
+
+/* ===== WARNA STATUS ===== */
 .status-ok {
   color: #0a8a2a;
   font-weight: bold;
@@ -110,26 +133,21 @@ td.nama {
   color: #c62828;
   font-weight: bold;
 }
-
-@media (max-width: 600px) {
-  th, td {
-    font-size: 12px;
-    padding: 6px 5px;
-  }
-}
 </style>
 </head>
 
 <body>
 
+<div class="container">
+
 <h2>Status Nilai Siswa</h2>
 
-<!-- Cari nama -->
+<!-- CARI -->
 <div class="cari-wrap">
   <input type="text" id="cariNama" placeholder="🔍 Cari nama siswa...">
 </div>
 
-<!-- Filter -->
+<!-- FILTER -->
 <div class="filter-wrap">
   <select id="filterKelas">
     <option value="">Semua Kelas</option>
@@ -140,11 +158,12 @@ td.nama {
   </select>
 </div>
 
-<!-- Info jumlah -->
+<!-- INFO -->
 <div id="info"></div>
 
-<div id="loading">⏳ Sedang mengambil data ....</div>
+<div id="loading">⏳ Sedang mengambil data ...</div>
 
+<!-- TABEL -->
 <div class="table-wrap">
 <table id="tabel">
 <thead>
@@ -160,51 +179,46 @@ td.nama {
 </table>
 </div>
 
+</div>
+
 <script>
 const url = "https://script.google.com/macros/s/AKfycbyqcfopFIuXKEq-hJhV0CAITfnx-rFkakXlnMQAhlmnTDyl1puF2sIZYXKCAvrudIJl/exec";
-
 let dataGlobal = [];
 
 fetch(url)
   .then(res => res.json())
   .then(data => {
-    // 🔢 URUTKAN OTOMATIS BERDASARKAN KELAS
     data.sort((a, b) => a.kelas - b.kelas);
-
     dataGlobal = data;
     isiDropdown();
     tampilkan(dataGlobal);
-    document.getElementById("loading").style.display = "none";
+    loading.style.display = "none";
     document.querySelector(".table-wrap").style.display = "block";
   })
-  .catch(() => {
-    document.getElementById("loading").innerText = "❌ Gagal mengambil data";
-  });
+  .catch(() => loading.innerText = "❌ Gagal mengambil data");
 
 function tampilkan(data) {
   const tbody = document.querySelector("#tabel tbody");
   tbody.innerHTML = "";
 
   data.forEach(r => {
-    const statusClass =
-      r.status.toUpperCase() === "OK" ? "status-ok" : "status-belum";
+    const statusClass = r.status.toUpperCase() === "OK"
+      ? "status-ok"
+      : "status-belum";
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${r.no}</td>
-      <td class="nama">${r.nama}</td>
-      <td>${r.kelas}</td>
-      <td>${r.nilai}</td>
-      <td class="${statusClass}">${r.status}</td>
-    `;
-    tbody.appendChild(tr);
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.no}</td>
+        <td>${r.nama}</td>
+        <td>${r.kelas}</td>
+        <td>${r.nilai}</td>
+        <td class="${statusClass}">${r.status}</td>
+      </tr>`;
   });
 
-  // 📊 info jumlah
   info.innerText = `Menampilkan ${data.length} dari ${dataGlobal.length} siswa`;
 }
 
-/* Isi dropdown */
 function isiDropdown() {
   const kelasSet = new Set();
   const statusSet = new Set();
@@ -214,39 +228,29 @@ function isiDropdown() {
     statusSet.add(r.status);
   });
 
-  [...kelasSet].sort((a, b) => a - b).forEach(k => {
-    filterKelas.insertAdjacentHTML(
-      "beforeend",
-      `<option value="${k}">Kelas ${k}</option>`
-    );
-  });
+  [...kelasSet].sort((a,b)=>a-b).forEach(k =>
+    filterKelas.innerHTML += `<option value="${k}">Kelas ${k}</option>`
+  );
 
-  statusSet.forEach(s => {
-    filterStatus.insertAdjacentHTML(
-      "beforeend",
-      `<option value="${s}">${s}</option>`
-    );
-  });
+  statusSet.forEach(s =>
+    filterStatus.innerHTML += `<option value="${s}">${s}</option>`
+  );
 }
 
-/* Filter gabungan */
 function filterData() {
   const nama = cariNama.value.toLowerCase();
   const kelas = filterKelas.value;
   const status = filterStatus.value;
 
-  const hasil = dataGlobal.filter(r => {
-    return (
-      (nama === "" || r.nama.toLowerCase().includes(nama)) &&
-      (kelas === "" || String(r.kelas) === kelas) &&
-      (status === "" || r.status === status)
-    );
-  });
+  const hasil = dataGlobal.filter(r =>
+    (nama === "" || r.nama.toLowerCase().includes(nama)) &&
+    (kelas === "" || String(r.kelas) === kelas) &&
+    (status === "" || r.status === status)
+  );
 
   tampilkan(hasil);
 }
 
-/* Event */
 cariNama.addEventListener("input", filterData);
 filterKelas.addEventListener("change", filterData);
 filterStatus.addEventListener("change", filterData);
